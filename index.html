@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Kontrol Motor via Suara & MQTT</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; text-align: center; }
+    button { margin: 5px; padding: 10px 20px; font-size: 16px; }
+    #textOutput { font-weight: bold; font-size: 18px; margin-top: 10px; }
+    canvas { max-width: 600px; margin: 20px auto; }
+  </style>
+</head>
+<body>
+  <h2>🎤 Kontrol Motor dengan Suara & Tombol</h2>
+
+  <button onclick="startRecognition()">🎙️ Mulai Rekam Suara</button>
+  <p id="textOutput">Teks akan muncul di sini...</p>
+
+  <hr>
+  <h3>🔘 Kontrol Manual</h3>
+  <div>
+    <button onclick="sendLevel('1')">Level 1</button>
+    <button onclick="sendLevel('2')">Level 2</button>
+    <button onclick="sendLevel('3')">Level 3</button>
+    <button onclick="sendLevel('0')">Stop</button>
+  </div>
+  <div>
+    <button onclick="sendDirection('1')">Maju</button>
+    <button onclick="sendDirection('2')">Mundur</button>
+  </div>
+
+  <hr>
+  <h3>📈 Grafik PWM & RPM</h3>
+  <canvas id="rpmChart"></canvas>
+  <canvas id="pwmChart"></canvas>
+
+  <script>
+    // MQTT Setup
+    const mqttOptions = {
+      username: "isp32",
+      password: "ISPsogem22",
+      protocol: "wss",
+      clientId: "webclient_" + Math.random().toString(16).substr(2, 8),
+      reconnectPeriod: 1000
+    };
+
+    const client = mqtt.connect("wss://7a3adf123d584eb0b1c891a0cb842c35.s1.eu.hivemq.cloud:8884/mqtt", mqttOptions);
+
+    client.on("connect", () => {
+      console.log("✅ MQTT Connected");
+      client.subscribe("motor/rpm");
+      client.subscribe("motor/pwm");
+    });
+
+    client.on("message", (topic, payload) => {
+      const value = parseInt(payload.toString());
+      if (topic === "motor/rpm") updateChart(rpmChart, value);
+      if (topic === "motor/pwm") updateChart(pwmChart, value);
+    });
+
+    function sendLevel(level) {
+      client.publish("motor/pid_level", level);
+    }
+
+    function sendDirection(dir) {
+      client.publish("motor/direction", dir);
+    }
+
+    // Voice Recognition
+    function startRecognition() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'id-ID';
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        const text = event.results[0][0].transcript.toLowerCase();
+        document.getElementById("textOutput").textContent = "Terdeteksi: " + text;
+
+        // Matching suara ke perintah
+        if (text.includes("level satu")) sendLevel("1");
+        else if (text.includes("level dua")) sendLevel("2");
+        else if (text.includes("level tiga")) sendLevel("3");
+        else if (text.includes("stop") || text.includes("berhenti")) sendLevel("0");
+        else if (text.includes("maju")) sendDirection("1");
+        else if (text.includes("mundur")) sendDirection("2");
+      };
+
+      recognition.onerror = function(e) {
+        document.getElementById("textOutput").textContent = "❌ Error: " + e.error;
+      };
+    }
+
+    // Chart.js setup
+    const rpmCtx = document.getElementById("rpmChart").getContext("2d");
+    const pwmCtx = document.getElementById("pwmChart").getContext("2d");
+
+    const rpmChart = new Chart(rpmCtx, createChartConfig("RPM"));
+    const pwmChart = new Chart(pwmCtx, createChartConfig("PWM"));
+
+    function createChartConfig(label) {
+      return {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: label,
+            data: [],
+            borderColor: 'blue',
+            borderWidth: 2,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          animation: false,
+          scales: {
+            x: { display: false },
+            y: { beginAtZero: true }
+          }
+        }
+      };
+    }
+
+    function updateChart(chart, value) {
+      const now = new Date().toLocaleTimeString();
+      if (chart.data.labels.length > 20) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      chart.data.labels.push(now);
+      chart.data.datasets[0].data.push(value);
+      chart.update();
+    }
+  </script>
+</body>
+</html>
