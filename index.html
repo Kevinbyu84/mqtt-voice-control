@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -84,21 +85,23 @@
       margin-bottom: 30px;
     }
 
-    /* ===== Voice Command Container (sama gaya dengan Throttle) ===== */
+    /* ===== Container Voice Command ===== */
     .voice-container {
       background: rgba(255, 255, 255, 0.12);
       border-radius: 20px;
       backdrop-filter: blur(10px);
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
       padding: 24px 30px;
-      max-width: 780px;   /* default untuk landscape */
+      max-width: 780px;
       width: 100%;
       border: 1px solid rgba(255,255,255,0.25);
       margin-bottom: 40px;
+
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
     }
-    /* Di dalam voice-container, kita menampilkan tombol + preview */
     .voice-command {
       display: flex;
       justify-content: center;
@@ -125,7 +128,7 @@
       background-color: rgba(255,255,255,0.2);
       border-radius: 10px;
       padding: 10px 20px;
-      min-width: 240px;
+      min-width: 180px;
       text-align: center;
       border: 1px solid rgba(255,255,255,0.3);
     }
@@ -137,10 +140,11 @@
       backdrop-filter: blur(10px);
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
       padding: 24px 30px;
-      max-width: 780px;   /* default untuk landscape */
+      max-width: 780px;
       width: 100%;
       border: 1px solid rgba(255,255,255,0.25);
       margin-bottom: 40px;
+
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
@@ -167,12 +171,10 @@
       font-weight: 600;
       margin-bottom: 8px;
     }
-    /* Wrapper untuk slider + keterangan label */
     .throttle-wrapper {
       display: flex;
       align-items: center;
     }
-    /* Slider vertikal yang diperbesar */
     .throttle {
       writing-mode: bt-lr;
       -webkit-appearance: slider-vertical;
@@ -181,7 +183,6 @@
       background: transparent;
       margin: 0 12px;
     }
-    /* Label di samping slider (7 level) */
     .throttle-labels {
       display: flex;
       flex-direction: column;
@@ -192,14 +193,13 @@
       text-align: left;
       user-select: none;
     }
-    /* Tulisan level saat ini (di bawah slider) */
     .throttle-value {
       font-size: 16px;
       font-weight: 700;
       margin-top: 4px;
     }
 
-    /* Hover & Akhir */
+    /* ===== Hover Button ===== */
     .controls button:hover {
       background-color: #e0e0e0;
     }
@@ -207,14 +207,16 @@
       background-color: #c0c0c0;
     }
 
-    /* ===== Media Query untuk Portrait ===== */
-    @media (orientation: portrait) {
-      /* Jika layar portrait, ubah max-width container menjadi 360px */
-      .throttle-container,
+    /* ===== Responsif ke Layar Kecil ===== */
+    @media (max-width: 800px) {
+      .throttle-container {
+        max-width: 360px;
+        flex-direction: column;
+        align-items: center;
+      }
       .voice-container {
         max-width: 360px;
       }
-      /* Agar di layar sempit, throttle ditumpuk vertikal */
       .controls {
         flex-direction: column;
         align-items: center;
@@ -231,7 +233,7 @@
 
   <h1>ESP32 Motor Control Panel</h1>
 
-  <!-- Bagian grafik motor -->
+  <!-- ===== Bagian Grafik Motor ===== -->
   <div class="motors-container">
     <!-- Motor Kiri -->
     <section class="motor-group" id="motor-left">
@@ -264,7 +266,7 @@
     </section>
   </div>
 
-  <!-- ===== Contact / Voice Command dalam Container ===== -->
+  <!-- ===== Container untuk Voice Command ===== -->
   <div class="voice-container">
     <div class="voice-command">
       <button onclick="startVoiceRecognition()">🎤 Voice Command</button>
@@ -272,14 +274,13 @@
     </div>
   </div>
 
-  <!-- ===== Bagian Throttle (Dengan Container yang Sama Gaya Speedometer) ===== -->
+  <!-- ===== Container untuk Throttle ===== -->
   <div class="throttle-container">
     <div class="controls">
       <!-- Throttle Kiri -->
       <div class="throttle-group">
         <label for="throttleLeft">Throttle Kiri</label>
         <div class="throttle-wrapper">
-          <!-- Slider Vertikal -->
           <input
             type="range"
             min="-3"
@@ -289,7 +290,6 @@
             class="throttle"
             oninput="handleThrottleChange('left', this.value)"
           />
-          <!-- Label level di samping slider -->
           <div class="throttle-labels">
             <div>MAJU 3</div>
             <div>MAJU 2</div>
@@ -300,7 +300,6 @@
             <div>MUNDUR 3</div>
           </div>
         </div>
-        <!-- Teks level saat ini -->
         <div class="throttle-value" id="throttleLeftValue">STOP</div>
       </div>
 
@@ -308,7 +307,6 @@
       <div class="throttle-group">
         <label for="throttleRight">Throttle Kanan</label>
         <div class="throttle-wrapper">
-          <!-- Slider Vertikal -->
           <input
             type="range"
             min="-3"
@@ -318,7 +316,6 @@
             class="throttle"
             oninput="handleThrottleChange('right', this.value)"
           />
-          <!-- Label level di samping slider -->
           <div class="throttle-labels">
             <div>MAJU 3</div>
             <div>MAJU 2</div>
@@ -329,12 +326,10 @@
             <div>MUNDUR 3</div>
           </div>
         </div>
-        <!-- Teks level saat ini -->
         <div class="throttle-value" id="throttleRightValue">STOP</div>
       </div>
     </div>
   </div>
-  <!-- ==================================================================================== -->
 
   <script>
     // ===== Inisialisasi MQTT =====
@@ -352,10 +347,14 @@
 
     client.on('connect', () => {
       console.log('Terhubung ke MQTT');
+      // Subscribe ke data sensor
       client.subscribe('motor/rpm/left');
       client.subscribe('motor/rpm/right');
       client.subscribe('motor/pwm/left');
       client.subscribe('motor/pwm/right');
+      // Subscribe ke feedback throttle
+      client.subscribe('motor/throttle/left');
+      client.subscribe('motor/throttle/right');
     });
 
     function sendCommand(cmd) {
@@ -467,24 +466,50 @@
     }
 
     client.on('message', (topic, payload) => {
-      const value = parseFloat(payload.toString());
+      const value = payload.toString();
+
+      // — Update grafik (tetap sama) —
       if (topic === 'motor/rpm/left') {
-        updateChart(rpmLeftChart, value);
-        updateSpeedometer(speedometerLeft, value);
+        updateChart(rpmLeftChart, parseFloat(value));
+        updateSpeedometer(speedometerLeft, parseFloat(value));
       }
       else if (topic === 'motor/rpm/right') {
-        updateChart(rpmRightChart, value);
-        updateSpeedometer(speedometerRight, value);
+        updateChart(rpmRightChart, parseFloat(value));
+        updateSpeedometer(speedometerRight, parseFloat(value));
       }
       else if (topic === 'motor/pwm/left') {
-        updateChart(pwmLeftChart, value);
+        updateChart(pwmLeftChart, parseFloat(value));
       }
       else if (topic === 'motor/pwm/right') {
-        updateChart(pwmRightChart, value);
+        updateChart(pwmRightChart, parseFloat(value));
+      }
+
+      // — Feedback throttle: ubah posisi slider dan teksnya —
+      else if (topic === 'motor/throttle/left') {
+        const levelL = parseInt(value);
+        const sliderL = document.getElementById('throttleLeft');
+        sliderL.value = levelL;
+        document.getElementById('throttleLeftValue').textContent = convertLevelToText(levelL);
+      }
+      else if (topic === 'motor/throttle/right') {
+        const levelR = parseInt(value);
+        const sliderR = document.getElementById('throttleRight');
+        sliderR.value = levelR;
+        document.getElementById('throttleRightValue').textContent = convertLevelToText(levelR);
       }
     });
 
-    // ===== Fungsi Normalize & Voice Recognition =====
+    // ===== Utility & Voice Recognition =====
+    function convertLevelToText(level) {
+      const absLvl = Math.abs(level);
+      if (level === 0) return "STOP";
+      if (level > 0) {
+        return `MAJU ${absLvl}`;
+      } else {
+        return `MUNDUR ${absLvl}`;
+      }
+    }
+
     function normalizeCommand(raw) {
       let cmd = raw.trim().replace(/[.,?]$/, '');
       cmd = cmd.toUpperCase();
@@ -544,21 +569,21 @@
       };
       const direction = directions[level] || "STOP";
 
-      // Ganti prefix 'left'/'right' menjadi 'KIRI'/'KANAN'
+      // Prefix KIRI / KANAN
       const prefix = (side === 'left')  ? 'KIRI'
                    : (side === 'right') ? 'KANAN'
                    : side.toUpperCase();
 
-      const command = `${prefix} ${direction}`; 
-      // Contoh: "KIRI MAJU 2" atau "KANAN STOP"
+      const command = `${prefix} ${direction}`; // Contoh: "KIRI MAJU 2"
 
       // Update teks di bawah slider
       const elemId = `throttle${side.charAt(0).toUpperCase() + side.slice(1)}Value`;
       document.getElementById(elemId).textContent = direction;
 
-      // Kirim perintah ke topik MQTT
+      // Kirim perintah ke broker
       sendCommand(command);
     }
   </script>
 </body>
 </html>
+```
