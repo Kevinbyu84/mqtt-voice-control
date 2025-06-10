@@ -173,15 +173,53 @@
     .throttle-wrapper {
       display: flex;
       align-items: center;
-    }
+    }   
+    /* Slider Vertikal Asli */
     .throttle {
       writing-mode: bt-lr;
       -webkit-appearance: slider-vertical;
-      width: 50px;   /* Lebar slider */
-      height: 300px; /* Tinggi slider */
+      width: 50px;    /* Lebar track */
+      height: 300px;  /* Tinggi track */
       background: transparent;
       margin: 0 12px;
+      position: relative;
     }
+
+    /* ===== Tambahan: Perbesar Thumb di WebKit (Chrome, Edge, Safari) ===== */
+    .throttle::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      /* Ukuran thumb diperbesar */
+      width: 40px;    /* sesuaikan agar lebih gampang digeser */
+      height: 40px;   /* sesuaikan agar lebih gampang digeser */
+      background: #ffffff;
+      border: 4px solid #888; 
+      border-radius: 50%;
+      cursor: pointer;
+      margin-top: -18px; /* agar thumb terletak tepat di ujung track */
+    }
+
+    /* Ketika user menahan thumb */
+    .throttle::-webkit-slider-thumb:active {
+      background: #e0e0e0;
+    }   
+
+    /* ===== Tambahan: Perbesar Thumb di Firefox ===== */
+    .throttle::-moz-range-thumb {
+      /* Ukuran thumb diperbesar */
+      width: 40px;
+      height: 40px;
+      background: #ffffff;
+      border: 4px solid #888;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    /* Ketika user menahan thumb (Firefox) */
+    .throttle::-moz-range-thumb:active {
+      background: #e0e0e0;
+    }
+
+    /* ===== Label di samping slider ===== */
     .throttle-labels {
       display: flex;
       flex-direction: column;
@@ -197,6 +235,7 @@
       font-weight: 700;
       margin-top: 4px;
     }
+
 
     /* ===== Hover Button ===== */
     .controls button:hover {
@@ -351,9 +390,9 @@
       client.subscribe('motor/rpm/right');
       client.subscribe('motor/pwm/left');
       client.subscribe('motor/pwm/right');
-      // Subscribe ke feedback throttle
-      client.subscribe('motor/throttle/left');
-      client.subscribe('motor/throttle/right');
+      // Jika tidak menggunakan topik throttle, baris di bawah bisa diabaikan/dihapus
+      // client.subscribe('motor/throttle/left');
+      // client.subscribe('motor/throttle/right');
     });
 
     function sendCommand(cmd) {
@@ -493,7 +532,8 @@
         updateChart(pwmRightChart, parseFloat(value));
       }
 
-      // — Feedback throttle: ubah posisi slider dan teksnya —
+      // Jika tidak lagi memakai topik throttle, hapus atau abaikan blok di bawah
+      /*
       else if (topic === 'motor/throttle/left') {
         const levelL = parseInt(value);
         const sliderL = document.getElementById('throttleLeft');
@@ -506,6 +546,7 @@
         sliderR.value = levelR;
         document.getElementById('throttleRightValue').textContent = convertLevelToText(levelR);
       }
+      */
     });
 
     // ===== Utility & Voice Recognition =====
