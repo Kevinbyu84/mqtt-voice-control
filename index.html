@@ -4,11 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kontrol Motor ESP32</title>
+
+  <!-- Library MQTT, Chart.js, dan nipplejs -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.0/dist/nipplejs.min.js"></script>
+
   <style>
-    /* ===== Reset & Body ===== */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #1e3c72, #2a5298);
@@ -17,91 +20,126 @@
       display: flex; flex-direction: column; align-items: center;
     }
     h1 {
-      text-align: center;
-      background: rgba(255,255,255,0.1);
-      padding: 20px 0; width: 100%;
-      font-size: 28px; font-weight: 600;
+      width: 100%; text-align: center;
+      background: rgba(255,255,255,0.1); padding: 20px 0;
+      font-size: 28px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      backdrop-filter: blur(6px);
-      margin-bottom: 20px;
+      backdrop-filter: blur(6px); margin-bottom: 20px;
     }
 
-    /* ===== Motors & Charts ===== */
-    .motors-container { display: flex; gap:60px; flex-wrap: wrap; margin:0 20px 40px; }
+    /* Motor Charts */
+    .motors-container {
+      display: flex; gap: 60px; flex-wrap: wrap;
+      margin: 0 20px 40px; justify-content: center;
+    }
     .motor-group {
-      background: rgba(255,255,255,0.12);
-      border-radius: 20px; backdrop-filter: blur(10px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-      padding: 24px 30px;
-      max-width: 360px; flex:1 1 360px;
+      background: rgba(255,255,255,0.12); border-radius: 20px;
+      padding: 24px 30px; max-width: 360px; flex: 1 1 360px;
       display: flex; flex-direction: column; align-items: center;
       border: 1px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(10px); box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
-    .motor-group h2 { margin-bottom:20px; font-size:22px; font-weight:700; }
-    .speedometer-container { position: relative; width:180px; height:140px; margin-bottom:32px; }
+    .motor-group h2 { margin-bottom: 20px; font-size: 22px; }
+    .speedometer-container {
+      position: relative; width: 180px; height: 140px; margin-bottom: 32px;
+    }
     .speedometer-label {
-      position:absolute; bottom:8px; width:100%;
-      text-align:center; font-size:16px; font-weight:600;
+      position: absolute; bottom: 8px; width: 100%;
+      text-align: center; font-size: 16px; font-weight: 600;
     }
     .chart-container {
-      width:320px; height:180px;
-      background: rgba(255,255,255,0.1);
-      border-radius:12px; padding:10px; margin-bottom:30px;
+      width: 320px; height: 180px;
+      background: rgba(255,255,255,0.1); border-radius: 12px;
+      padding: 10px; margin-bottom: 30px;
     }
 
-    /* ===== Voice Command ===== */
+    /* Voice Command */
     .voice-container {
-      background: rgba(255,255,255,0.12);
-      border-radius:20px; backdrop-filter: blur(10px);
-      box-shadow:0 8px 20px rgba(0,0,0,0.2);
-      padding:24px 30px; max-width:780px; width:100%;
-      border:1px solid rgba(255,255,255,0.25);
-      margin-bottom:40px;
-      display:flex; flex-direction:column; align-items:center; gap:16px;
+      width: 100%; max-width: 780px;
+      background: rgba(255,255,255,0.12); border-radius: 20px;
+      padding: 24px 30px; margin-bottom: 40px;
+      display: flex; flex-direction: column; align-items: center; gap:16px;
+      border: 1px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(10px); box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
     .voice-command {
-      display:flex; justify-content:center; align-items:center; gap:20px; width:100%;
+      display: flex; align-items: center; gap: 20px; width: 100%;
+      justify-content: center;
     }
     .voice-command button {
-      background:#fff; color:#1e3c72; font-size:16px;
+      background: #fff; color: #1e3c72; font-size:16px;
       padding:12px 24px; border:none; border-radius:30px;
       cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.2);
-      transition:background .2s;
+      transition: background 0.2s ease;
     }
-    .voice-command button:hover { background:#e3e3e3; }
+    .voice-command button:hover { background: #e3e3e3; }
     .speech-preview {
-      font-size:16px; background:rgba(255,255,255,0.2);
-      border-radius:10px; padding:10px 20px; min-width:180px;
-      text-align:center; border:1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.2); border-radius:10px;
+      padding:10px 20px; min-width:180px; text-align:center;
+      font-size:16px; border:1px solid rgba(255,255,255,0.3);
     }
 
-    /* ===== Joystick ===== */
-    .joystick-container {
-      background: rgba(255,255,255,0.12);
-      border-radius:20px; backdrop-filter: blur(10px);
-      box-shadow:0 8px 20px rgba(0,0,0,0.2);
-      padding:24px; max-width:300px; text-align:center; margin-bottom:40px;
+    /* Controls Container */
+    .throttle-container {
+      width: 100%; max-width: 780px;
+      background: rgba(255,255,255,0.12); border-radius:20px;
+      padding:24px 30px; margin-bottom:40px;
+      display:flex; justify-content:center; flex-wrap:wrap; gap:60px;
+      border:1px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(10px); box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
-    #joystick {
-      background: rgba(255,255,255,0.1);
-      border-radius:50%; touch-action:none; cursor:pointer;
+    .controls {
+      width:100%; display:flex; justify-content:space-around; align-items:flex-end;
     }
-    #joystickStatus { margin-top:12px; font-weight:600; }
+    .throttle-group {
+      display:flex; flex-direction:column; align-items:center; gap:12px;
+      flex:1 1 300px;
+    }
+    .throttle-group label { font-size:18px; font-weight:600; }
+    .throttle-wrapper { display:flex; align-items:center; }
+    .throttle {
+      writing-mode: bt-lr; -webkit-appearance: slider-vertical;
+      width:50px; height:300px; background:transparent; margin:0 12px;
+    }
+    .throttle::-webkit-slider-thumb {
+      -webkit-appearance:none; width:40px; height:40px;
+      background:#fff; border:4px solid #888; border-radius:50%;
+      cursor:pointer; margin-top:-18px;
+    }
+    .throttle::-webkit-slider-thumb:active { background:#e0e0e0; }
+    .throttle::-moz-range-thumb {
+      width:40px; height:40px; background:#fff;
+      border:4px solid #888; border-radius:50%; cursor:pointer;
+    }
+    .throttle::-moz-range-thumb:active { background:#e0e0e0; }
 
-    /* ===== Responsif ===== */
-    @media (max-width:800px) {
-      .motors-container { gap:20px; }
-      .voice-container, .joystick-container { max-width:360px; }
-      .chart-container { width:260px; }
+    .throttle-labels {
+      display:flex; flex-direction:column; justify-content:space-between;
+      height:300px; font-size:14px; user-select:none; line-height:1.2;
+    }
+    .throttle-value { font-size:16px; font-weight:700; margin-top:4px; }
+
+    /* Joystick Zone */
+    #joystick-zone {
+      width: 150px; height: 150px;
+      background: rgba(255,255,255,0.1); border-radius:50%;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    @media (max-width: 800px) {
+      .controls { flex-direction:column; gap:40px; }
+      .throttle-container, .voice-container { max-width:360px; }
     }
   </style>
 </head>
 <body>
+
   <h1>ESP32 Motor Control Panel</h1>
 
-  <!-- Grafik Motor -->
+  <!-- Motor Charts -->
   <div class="motors-container">
-    <section class="motor-group">
+    <section class="motor-group" id="motor-left">
       <h2>Motor Kiri</h2>
       <div class="speedometer-container">
         <canvas id="speedometerLeft" width="180" height="140"></canvas>
@@ -110,7 +148,7 @@
       <div class="chart-container"><canvas id="rpmLeft"></canvas></div>
       <div class="chart-container"><canvas id="pwmLeft"></canvas></div>
     </section>
-    <section class="motor-group">
+    <section class="motor-group" id="motor-right">
       <h2>Motor Kanan</h2>
       <div class="speedometer-container">
         <canvas id="speedometerRight" width="180" height="140"></canvas>
@@ -129,182 +167,183 @@
     </div>
   </div>
 
-  <!-- Joystick -->
-  <div class="joystick-container">
-    <h2>Kontrol Joystick</h2>
-    <canvas id="joystick" width="240" height="240"></canvas>
-    <div id="joystickStatus">(0, 0)</div>
+  <!-- Throttles & Joystick -->
+  <div class="throttle-container">
+    <div class="controls">
+      <!-- Throttle Kiri -->
+      <div class="throttle-group">
+        <label for="throttleLeft">Throttle Kiri</label>
+        <div class="throttle-wrapper">
+          <input type="range" min="-3" max="3" value="0" id="throttleLeft"
+                 class="throttle"
+                 oninput="handleThrottleChange('left', this.value)" />
+          <div class="throttle-labels">
+            <div>MAJU 3</div><div>MAJU 2</div><div>MAJU 1</div>
+            <div>STOP</div>
+            <div>MUNDUR 1</div><div>MUNDUR 2</div><div>MUNDUR 3</div>
+          </div>
+        </div>
+        <div class="throttle-value" id="throttleLeftValue">STOP</div>
+      </div>
+
+      <!-- Joystick Analog -->
+      <div class="throttle-group">
+        <label>Joystick Analog</label>
+        <div id="joystick-zone"></div>
+        <div class="throttle-value" id="joystickValue">0</div>
+      </div>
+
+      <!-- Throttle Kanan -->
+      <div class="throttle-group">
+        <label for="throttleRight">Throttle Kanan</label>
+        <div class="throttle-wrapper">
+          <input type="range" min="-3" max="3" value="0" id="throttleRight"
+                 class="throttle"
+                 oninput="handleThrottleChange('right', this.value)" />
+          <div class="throttle-labels">
+            <div>MAJU 3</div><div>MAJU 2</div><div>MAJU 1</div>
+            <div>STOP</div>
+            <div>MUNDUR 1</div><div>MUNDUR 2</div><div>MUNDUR 3</div>
+          </div>
+        </div>
+        <div class="throttle-value" id="throttleRightValue">STOP</div>
+      </div>
+    </div>
   </div>
 
   <script>
-    // ===== MQTT Setup =====
+    // MQTT setup
     const client = mqtt.connect(
       'wss://7a3adf123d584eb0b1c891a0cb842c35.s1.eu.hivemq.cloud:8884/mqtt',
-      { username:'isp32', password:'ISPsogem22', connectTimeout:5000, clean:true, protocol:'wss' }
+      { username: 'isp32', password: 'ISPsogem22', connectTimeout: 5000, clean: true }
     );
-    client.on('connect', ()=>{
-      console.log('Terhubung ke MQTT');
-      ['motor/rpm/left','motor/rpm/right','motor/pwm/left','motor/pwm/right']
-        .forEach(t=>client.subscribe(t));
+    client.on('connect', () => {
+      client.subscribe(['motor/rpm/left','motor/rpm/right','motor/pwm/left','motor/pwm/right']);
     });
-    function sendCommand(cmd){
+    function sendCommand(cmd) {
       client.publish('motor/mode_pid', cmd);
-      console.log('Kirim:', cmd);
     }
 
-    // ===== Charts =====
-    function createChart(id,label){
+    // Chart.js initialization
+    function createChart(id,label) {
       const ctx = document.getElementById(id).getContext('2d');
-      return new Chart(ctx,{
+      return new Chart(ctx, {
         type:'line',
-        data:{ labels:[], datasets:[{ label, borderColor:'#fff',
-          backgroundColor:'rgba(255,255,255,0.2)', borderWidth:2,
-          pointRadius:0, fill:true, data:[], tension:0.3 }]},
+        data:{ labels:[], datasets:[{ label, borderColor:'#fff', backgroundColor:'rgba(255,255,255,0.2)', data:[], tension:0.3 }] },
         options:{
           responsive:true, animation:false,
-          scales:{ x:{display:false}, y:{ beginAtZero:true, ticks:{color:'#fff'} } },
-          plugins:{ legend:{ labels:{ color:'#fff' } } }
+          scales:{ x:{display:false}, y:{beginAtZero:true, ticks:{color:'#fff'}} },
+          plugins:{ legend:{labels:{color:'#fff'}} }
         }
       });
     }
-    const rpmLeft  = createChart('rpmLeft','RPM Kiri');
-    const rpmRight = createChart('rpmRight','RPM Kanan');
-    const pwmLeft  = createChart('pwmLeft','PWM Kiri');
-    const pwmRight = createChart('pwmRight','PWM Kanan');
-    function updateChart(ch,val){
-      const now = new Date().toLocaleTimeString();
-      ch.data.labels.push(now); ch.data.datasets[0].data.push(Number(val));
-      if(ch.data.labels.length>20){
-        ch.data.labels.shift(); ch.data.datasets[0].data.shift();
+    const rpmLeftChart  = createChart('rpmLeft','RPM Kiri');
+    const rpmRightChart = createChart('rpmRight','RPM Kanan');
+    const pwmLeftChart  = createChart('pwmLeft','PWM Kiri');
+    const pwmRightChart = createChart('pwmRight','PWM Kanan');
+    function updateChart(chart, v) {
+      const t = new Date().toLocaleTimeString();
+      chart.data.labels.push(t);
+      chart.data.datasets[0].data.push(v);
+      if (chart.data.labels.length>20) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
       }
-      ch.update();
+      chart.update();
     }
 
-    // ===== Speedometer =====
+    // Speedometer plugin & setup
     const MAX_SPEED = (100*0.204204)/60;
     const centerTextPlugin = {
-      id:'centerText', afterDraw(c){
+      id:'centerText',
+      afterDraw(c) {
         const {ctx, chartArea:{width,height}} = c;
         ctx.save();
-        ctx.font='bold 28px Segoe UI'; ctx.fillStyle='#fff';
+        ctx.font='bold 28px Segoe UI';
+        ctx.fillStyle='#fff';
         ctx.textAlign='center'; ctx.textBaseline='middle';
         const sp = c.data.datasets[0].data[0]||0;
         ctx.fillText(sp.toFixed(2)+' m/s', width/2, height/1.7);
         ctx.restore();
       }
     };
-    function createSpeedo(id){
+    function createSpeedometer(id) {
       const ctx = document.getElementById(id).getContext('2d');
       return new Chart(ctx,{
         type:'doughnut',
-        data:{ labels:['Kecepatan','Sisa'], datasets:[{
-          data:[0,MAX_SPEED],
-          backgroundColor:['#fff','#444'], borderWidth:0,
-          cutout:'80%', circumference:180, rotation:270, hoverOffset:0
-        }]},
-        options:{ responsive:false, animation:{duration:300},
-          plugins:{ tooltip:{enabled:false}, legend:{display:false}, centerText:{} }
-        },
+        data:{ labels:['',''], datasets:[{ data:[0,MAX_SPEED], cutout:'80%', circumference:180, rotation:270, borderWidth:0 }]},
+        options:{ responsive:false, animation:{duration:300}, plugins:{tooltip:{enabled:false},legend:{display:false},centerText:{}} },
         plugins:[centerTextPlugin]
       });
     }
-    const speedLeft  = createSpeedo('speedometerLeft');
-    const speedRight = createSpeedo('speedometerRight');
-    function updateSpeedo(ch,rpm){
-      const sp = Math.max(0,Math.min(MAX_SPEED,(rpm*0.204204)/60));
-      ch.data.datasets[0].data[0] = sp;
-      ch.data.datasets[0].data[1] = MAX_SPEED - sp;
-      ch.update();
+    const speedLeft  = createSpeedometer('speedometerLeft');
+    const speedRight = createSpeedometer('speedometerRight');
+    function updateSpeedometer(chart,rpm) {
+      const sp = (rpm*0.204204)/60;
+      const v = Math.max(0,Math.min(MAX_SPEED,sp));
+      chart.data.datasets[0].data = [v, MAX_SPEED-v];
+      chart.update();
     }
 
-    // ===== MQTT Messages =====
-    client.on('message',(t,p)=>{
-      const v = p.toString();
-      if(t==='motor/rpm/left')  { updateChart(rpmLeft,v);  updateSpeedo(speedLeft, parseFloat(v)); }
-      if(t==='motor/rpm/right') { updateChart(rpmRight,v); updateSpeedo(speedRight, parseFloat(v)); }
-      if(t==='motor/pwm/left')  updateChart(pwmLeft,v);
-      if(t==='motor/pwm/right') updateChart(pwmRight,v);
+    client.on('message',(topic,msg) => {
+      const v = parseFloat(msg.toString());
+      if (topic==='motor/rpm/left')   { updateChart(rpmLeftChart, v); updateSpeedometer(speedLeft, v); }
+      else if (topic==='motor/rpm/right'){ updateChart(rpmRightChart,v); updateSpeedometer(speedRight,v); }
+      else if (topic==='motor/pwm/left') updateChart(pwmLeftChart, v);
+      else if (topic==='motor/pwm/right')updateChart(pwmRightChart,v);
     });
 
-    // ===== Voice Recognition =====
-    function normalizeCommand(raw){
-      let c=raw.trim().replace(/[.,?]$/,'').toUpperCase();
-      const R={'SATU':'1','DUA':'2','TIGA':'3','BERHENTI':'STOP',
-               'MAJU SATU':'MAJU 1','MAJU DUA':'MAJU 2','MAJU TIGA':'MAJU 3',
-               'MUNDUR SATU':'MUNDUR 1','MUNDUR DUA':'MUNDUR 2','MUNDUR TIGA':'MUNDUR 3'};
-      Object.entries(R).forEach(([k,v])=>{ if(c.includes(k)) c=c.replace(k,v); });
+    // Voice recognition
+    function normalizeCommand(raw) {
+      let c = raw.trim().toUpperCase().replace(/[.,?]$/,'');
+      const m = {"SATU":"1","DUA":"2","TIGA":"3","MAJU SATU":"MAJU 1","MAJU DUA":"MAJU 2","MAJU TIGA":"MAJU 3","MUNDUR SATU":"MUNDUR 1","MUNDUR DUA":"MUNDUR 2","MUNDUR TIGA":"MUNDUR 3","BERHENTI":"STOP"};
+      for (let k in m) if (c.includes(k)) c = c.replace(k,m[k]);
       return c;
     }
-    function startVoiceRecognition(){
+    function startVoiceRecognition() {
       const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
-      if(!SR){ document.getElementById('speechOutput').textContent='Browser tidak mendukung Speech Recognition'; return; }
-      const rec = new SR();
-      rec.lang='id-ID'; rec.interimResults=false;
-      rec.onresult = e => {
-        const raw = e.results[0][0].transcript;
-        const cmd = normalizeCommand(raw);
-        document.getElementById('speechOutput').textContent = cmd;
+      if (!SR) { document.getElementById('speechOutput').textContent='Browser tidak mendukung'; return; }
+      const r = new SR(); r.lang='id-ID'; r.interimResults=false;
+      r.onresult = e => {
+        const cmd = normalizeCommand(e.results[0][0].transcript);
+        document.getElementById('speechOutput').textContent=cmd;
         sendCommand(cmd);
       };
-      rec.onerror = e => document.getElementById('speechOutput').textContent = `Error: ${e.error}`;
-      rec.start();
+      r.onerror = e => document.getElementById('speechOutput').textContent=`Error: ${e.error}`;
+      r.start();
     }
 
-    // ===== Joystick Logic (dengan autocenter & arah belok benar) =====
-    const joy = document.getElementById('joystick');
-    const ctx = joy.getContext('2d');
-    const S = joy.width, H = S/2, R = H-20;
-    let drag = false;
-    drawJoy(0,0);
-
-    joy.addEventListener('pointerdown', e=>{ drag=true; joy.setPointerCapture(e.pointerId); updateJoy(e); });
-    joy.addEventListener('pointermove', e=>{ if(drag) updateJoy(e); });
-    joy.addEventListener('pointerup', e=>{ drag=false; resetJoy(); });
-    joy.addEventListener('pointerleave', e=>{ if(drag){ drag=false; resetJoy(); } });
-    joy.addEventListener('pointercancel', e=>{ drag=false; resetJoy(); });
-
-    function updateJoy(e){
-      const r = joy.getBoundingClientRect();
-      let x = e.clientX - r.left - H;
-      let y = e.clientY - r.top - H;
-      const d = Math.hypot(x,y);
-      if(d>R){ x=x/d*R; y=y/d*R; }
-      drawJoy(x,y);
-      const xn = +(x/R).toFixed(2);
-      const yn = +(-(y/R).toFixed(2));
-      document.getElementById('joystickStatus').textContent = `(${xn}, ${yn})`;
-      // invert turn → belok kanan saat xn>0
-      const speed = Math.round(yn*3);
-      const turn  = -Math.round(xn*3);
-      publish(speed, turn);
+    // Throttle handlers
+    function convertLevelToText(l) {
+      if (l==0) return 'STOP';
+      return (l>0?'MAJU ':'MUNDUR ')+Math.abs(l);
+    }
+    function handleThrottleChange(side,val) {
+      const lvl = parseInt(val);
+      const txt = convertLevelToText(lvl);
+      document.getElementById(`throttle${side.charAt(0).toUpperCase()+side.slice(1)}Value`).textContent = txt;
+      sendCommand(`${side==='left'?'KIRI':'KANAN'} ${txt}`);
     }
 
-    function drawJoy(x,y){
-      ctx.clearRect(0,0,S,S);
-      ctx.beginPath(); ctx.arc(H,H,R+10,0,2*Math.PI);
-      ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.fill();
-      ctx.beginPath(); ctx.arc(H+x, H+y, 20, 0,2*Math.PI);
-      ctx.fillStyle='#fff'; ctx.fill();
-      ctx.strokeStyle='#888'; ctx.lineWidth=3; ctx.stroke();
-    }
-
-    function resetJoy(){
-      drawJoy(0,0);
-      document.getElementById('joystickStatus').textContent = '(0, 0)';
-      publish(0,0);
-    }
-
-    function publish(speed, turn){
-      let L = speed - turn, Rm = speed + turn;
-      L = Math.max(-3,Math.min(3,L));
-      Rm = Math.max(-3,Math.min(3,Rm));
-      function F(n){
-        if(n===0) return 'STOP';
-        return (n>0?'MAJU ':'MUNDUR ')+Math.abs(n);
-      }
-      sendCommand(`KIRI ${F(L)}`);
-      sendCommand(`KANAN ${F(Rm)}`);
-    }
+    // NippleJS joystick
+    const joystick = nipplejs.create({
+      zone: document.getElementById('joystick-zone'),
+      mode: 'static',
+      position: { left:'50%', top:'50%' },
+      color: '#ffffff',
+      size: 120
+    });
+    joystick.on('move', (evt, data) => {
+      if (!data || !data.vector) return;
+      // data.vector.y: −1 (bawah) … +1 (atas)
+      const joy = Math.round(data.vector.y * 100);
+      document.getElementById('joystickValue').textContent = joy;
+      client.publish('motor/joystick', String(joy));
+    });
+    joystick.on('end', () => {
+      document.getElementById('joystickValue').textContent = '0';
+      client.publish('motor/joystick', '0');
+    });
   </script>
 </body>
 </html>
