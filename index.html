@@ -314,18 +314,6 @@
     }
 
     // Throttle handlers
-    function convertLevelToText(l) {
-      if (l==0) return 'STOP';
-      return (l>0?'MAJU ':'MUNDUR ')+Math.abs(l);
-    }
-    function handleThrottleChange(side,val) {
-      const lvl = parseInt(val);
-      const txt = convertLevelToText(lvl);
-      document.getElementById(`throttle${side.charAt(0).toUpperCase()+side.slice(1)}Value`).textContent = txt;
-      sendCommand(`${side==='left'?'KIRI':'KANAN'} ${txt}`);
-    }
-
-    // NippleJS joystick
     const joystick = nipplejs.create({
       zone: document.getElementById('joystick-zone'),
       mode: 'static',
@@ -333,16 +321,31 @@
       color: '#ffffff',
       size: 120
     });
+
     joystick.on('move', (evt, data) => {
       if (!data || !data.vector) return;
-      // data.vector.y: −1 (bawah) … +1 (atas)
-      const joy = Math.round(data.vector.y * 100);
-      document.getElementById('joystickValue').textContent = joy;
-      client.publish('motor/joystick', String(joy));
+
+      const y = data.vector.y; // -1 (mundur) … +1 (maju)
+      const x = data.vector.x; // -1 (kiri) … +1 (kanan)
+
+      const base = y * 100;    // kecepatan dasar: –100…+100
+      const diff = x * 100;    // koreksi belok: –100…+100
+
+      // **Tukar** rumus supaya kanan/kiri tidak terbalik**
+      let left  = Math.round(base + diff);
+      let right = Math.round(base - diff);
+
+      // Clamp antara –100…+100
+      left  = Math.max(-100, Math.min(100, left));
+      right = Math.max(-100, Math.min(100, right));
+
+      document.getElementById('joystickValue').textContent = `L:${left} R:${right}`;
+      client.publish('motor/joystick', JSON.stringify({ L: left, R: right }));
     });
+
     joystick.on('end', () => {
-      document.getElementById('joystickValue').textContent = '0';
-      client.publish('motor/joystick', '0');
+      document.getElementById('joystickValue').textContent = 'L:0 R:0';
+      client.publish('motor/joystick', JSON.stringify({ L: 0, R: 0 }));
     });
   </script>
 </body>
