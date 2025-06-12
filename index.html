@@ -313,6 +313,15 @@
       r.start();
     }
 
+    // Throttle handlers
+    const joystick = nipplejs.create({
+      zone: document.getElementById('joystick-zone'),
+      mode: 'static',
+      position: { left:'50%', top:'50%' },
+      color: '#ffffff',
+      size: 120
+    });
+
   function capitalize(s){
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
@@ -340,15 +349,7 @@
 
     // Kirim payload lengkap
     sendCommand(cmd);
-
-    // Throttle handlers
-    const joystick = nipplejs.create({
-      zone: document.getElementById('joystick-zone'),
-      mode: 'static',
-      position: { left:'50%', top:'50%' },
-      color: '#ffffff',
-      size: 120
-    });
+  }
 
     joystick.on('move', (evt, data) => {
       if (!data || !data.vector) return;
