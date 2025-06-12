@@ -188,6 +188,13 @@
 
       <!-- Joystick Analog -->
       <div class="throttle-group">
+        <button id="emergencyBtn" onclick="triggerEmergencyStop()"
+        style="background: #ff4b5c; color: white; font-weight: bold; padding: 10px 20px;
+               border: none; border-radius: 10px; margin-bottom: 12px;
+               box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer;">
+              ⛔ Emergency Stop
+        </button>
+
         <label>Joystick Analog</label>
         <div id="joystick-zone"></div>
         <div class="throttle-value" id="joystickValue">0</div>
@@ -350,6 +357,24 @@
     // Kirim payload lengkap
     sendCommand(cmd);
   }
+function triggerEmergencyStop() {
+  // Kirim perintah MQTT ke semua topik yang relevan
+  sendCommand('KIRI STOP');
+  sendCommand('KANAN STOP');
+  client.publish('motor/joystick', JSON.stringify({ L: 0, R: 0 }));
+
+  // Reset slider throttle
+  const leftSlider = document.getElementById('throttleLeft');
+  const rightSlider = document.getElementById('throttleRight');
+  leftSlider.value = 0;
+  rightSlider.value = 0;
+  handleThrottleChange('left', 0);
+  handleThrottleChange('right', 0);
+
+  // Reset UI Joystick
+  document.getElementById('joystickValue').textContent = 'L:0 R:0';
+
+}
 
     joystick.on('move', (evt, data) => {
       if (!data || !data.vector) return;
