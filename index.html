@@ -309,7 +309,7 @@
         document.getElementById('speechOutput').textContent=cmd;
         sendCommand(cmd);
       };
-      r.onerror = e => document.getElementById('speechOutput').textContent=Error: ${e.error};
+      r.onerror = e => document.getElementById('speechOutput').textContent=`Error: ${e.error}`;
       r.start();
     }
 
@@ -322,35 +322,6 @@
       size: 120
     });
 
-  function capitalize(s){
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-  // Mapping nilai slider ke perintah motor (tanpa sisi)
-  const throttleMap = {
-    '-3': 'MUNDUR 3',
-    '-2': 'MUNDUR 2',
-    '-1': 'MUNDUR 1',
-     '0': 'STOP',
-     '1': 'MAJU 1',
-     '2': 'MAJU 2',
-     '3': 'MAJU 3'
-  };
-
-  function handleThrottleChange(side, value) {
-    // Tentukan kata sisi
-    const sideWord = side === 'left' ? 'KIRI' : 'KANAN';
-    // Ambil teks perintah utama
-    const baseCmd = throttleMap[value] || 'STOP';
-    // Gabungkan: "KIRI MAJU 1" atau "KANAN MUNDUR 2"
-    const cmd = ${sideWord} ${baseCmd};
-
-    // Update label UI
-    document.getElementById(throttle${capitalize(side)}Value).textContent = cmd;
-
-    // Kirim payload lengkap
-    sendCommand(cmd);
-  }
-
     joystick.on('move', (evt, data) => {
       if (!data || !data.vector) return;
 
@@ -360,7 +331,7 @@
       const base = y * 100;    // kecepatan dasar: –100…+100
       const diff = x * 100;    // koreksi belok: –100…+100
 
-      // *Tukar* rumus supaya kanan/kiri tidak terbalik**
+      // **Tukar** rumus supaya kanan/kiri tidak terbalik**
       let left  = Math.round(base + diff);
       let right = Math.round(base - diff);
 
@@ -368,7 +339,7 @@
       left  = Math.max(-100, Math.min(100, left));
       right = Math.max(-100, Math.min(100, right));
 
-      document.getElementById('joystickValue').textContent = L:${left} R:${right};
+      document.getElementById('joystickValue').textContent = `L:${left} R:${right}`;
       client.publish('motor/joystick', JSON.stringify({ L: left, R: right }));
     });
 
