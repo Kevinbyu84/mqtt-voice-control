@@ -322,6 +322,31 @@
       size: 120
     });
 
+  function capitalize(s){
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // Mapping nilai slider ke perintah motor
+  const throttleMap = {
+    '-3': 'MUNDUR 3',
+    '-2': 'MUNDUR 2',
+    '-1': 'MUNDUR 1',
+     '0': 'STOP',
+     '1': 'MAJU 1',
+     '2': 'MAJU 2',
+     '3': 'MAJU 3'
+  };
+
+  // Fungsi yang dipanggil oleh oninput slider
+  function handleThrottleChange(side, value) {
+    // Ambil teks yang sesuai
+    const cmd = throttleMap[value] || 'STOP';
+    // Update label di UI
+    document.getElementById(`throttle${capitalize(side)}Value`).textContent = cmd;
+    // Kirim ke broker MQTT — di sini pakai topik motor/mode_pid
+    sendCommand(cmd);
+  }
+
     joystick.on('move', (evt, data) => {
       if (!data || !data.vector) return;
 
