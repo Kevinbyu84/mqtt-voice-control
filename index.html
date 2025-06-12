@@ -313,20 +313,10 @@
       r.start();
     }
 
-    // Throttle handlers
-    const joystick = nipplejs.create({
-      zone: document.getElementById('joystick-zone'),
-      mode: 'static',
-      position: { left:'50%', top:'50%' },
-      color: '#ffffff',
-      size: 120
-    });
-
   function capitalize(s){
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
-
-  // Mapping nilai slider ke perintah motor
+  // Mapping nilai slider ke perintah motor (tanpa sisi)
   const throttleMap = {
     '-3': 'MUNDUR 3',
     '-2': 'MUNDUR 2',
@@ -337,15 +327,28 @@
      '3': 'MAJU 3'
   };
 
-  // Fungsi yang dipanggil oleh oninput slider
   function handleThrottleChange(side, value) {
-    // Ambil teks yang sesuai
-    const cmd = throttleMap[value] || 'STOP';
-    // Update label di UI
+    // Tentukan kata sisi
+    const sideWord = side === 'left' ? 'KIRI' : 'KANAN';
+    // Ambil teks perintah utama
+    const baseCmd = throttleMap[value] || 'STOP';
+    // Gabungkan: "KIRI MAJU 1" atau "KANAN MUNDUR 2"
+    const cmd = `${sideWord} ${baseCmd}`;
+
+    // Update label UI
     document.getElementById(`throttle${capitalize(side)}Value`).textContent = cmd;
-    // Kirim ke broker MQTT — di sini pakai topik motor/mode_pid
+
+    // Kirim payload lengkap
     sendCommand(cmd);
-  }
+
+    // Throttle handlers
+    const joystick = nipplejs.create({
+      zone: document.getElementById('joystick-zone'),
+      mode: 'static',
+      position: { left:'50%', top:'50%' },
+      color: '#ffffff',
+      size: 120
+    });
 
     joystick.on('move', (evt, data) => {
       if (!data || !data.vector) return;
